@@ -82,7 +82,6 @@ seaborn==0.9.0
 Send2Trash==1.5.0
 six==1.12.0
 sklearn==0.0
-spacy==2.2.1
 srsly==0.1.0
 tensorboard==2.0.0
 tensorflow-estimator==2.0.0
