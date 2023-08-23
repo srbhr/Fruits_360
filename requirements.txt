@@ -97,7 +97,7 @@ urllib3==1.26.5
 wasabi==0.2.2
 wcwidth==0.1.7
 webencodings==0.5.1
-Werkzeug==0.16.0
+Werkzeug==2.2.3
 widgetsnbextension==3.5.1
 wrapt==1.11.2
 zipp==0.6.0
