@@ -59,7 +59,7 @@ pandas==0.25.1
 pandocfilters==1.4.2
 parso==0.5.1
 pickleshare==0.7.5
-Pillow==10.2.0
+Pillow==10.3.0
 plac==0.9.6
 preshed==3.0.2
 prometheus-client==0.7.1
