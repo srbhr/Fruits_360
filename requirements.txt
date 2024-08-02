@@ -37,7 +37,7 @@ jupyter-console==6.0.0
 jupyter-core==4.11.2
 jupyterlab==1.2.21
 jupyterlab-server==1.0.6
-Keras==2.3.1
+Keras==2.13.1
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 kiwisolver==1.1.0
