@@ -91,7 +91,7 @@ terminado==0.8.2
 testpath==0.4.2
 thinc==7.1.1
 tornado==6.3.3
-tqdm==4.36.1
+tqdm==4.66.3
 traitlets==4.3.3
 urllib3==1.26.18
 wasabi==0.2.2
