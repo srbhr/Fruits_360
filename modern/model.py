@@ -18,7 +18,6 @@ What changed vs the 2019 `fruits.py`:
   * The head outputs raw LOGITS (no softmax). The loss applies softmax
     internally (`from_logits=True`), which is numerically more stable.
 """
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 

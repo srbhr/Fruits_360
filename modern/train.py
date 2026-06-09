@@ -12,8 +12,9 @@ Replaces the 2019 `fruits.py`. Notable fixes:
   * Trains on the WHOLE training set each epoch. The old
     `steps_per_epoch=1000 // batch_size` silently used ~1000 of 61,488 images
     per epoch — under 2% of the data.
-  * A real 90/10 train/val split instead of `validation_steps=3` (which
-    validated on ~96 images).
+  * A fixed, leak-free 90/10 train/val split done once at the file-list level
+    (instead of `validation_steps=3`, which validated on ~96 images). Only the
+    training pipeline shuffles; the val/test pipelines are deterministic.
   * Saves the modern `.keras` format AND a `class_names.json`, so inference
     never relies on a hand-typed 70-entry label dict again.
 
@@ -26,6 +27,7 @@ Run from the repo root:  python modern/train.py
 """
 import json
 import pathlib
+import random
 import sys
 
 import tensorflow as tf
@@ -45,6 +47,7 @@ IMG_SIZE = (100, 100)
 BATCH_SIZE = 32
 EPOCHS = 15
 SEED = 42
+VAL_FRACTION = 0.10
 AUTOTUNE = tf.data.AUTOTUNE
 
 
@@ -59,27 +62,55 @@ def discover_classes(train_dir: pathlib.Path) -> list[str]:
     return sorted(d.name for d in train_dir.iterdir() if d.is_dir())
 
 
-def make_dataset(root: pathlib.Path, class_to_index: dict[str, int], *, training: bool):
-    """Build a raw tf.data pipeline of (image, label) pairs straight from disk."""
+def list_examples(root: pathlib.Path, class_to_index: dict[str, int]):
+    """Collect (image_path, label) pairs straight from disk."""
     paths, labels = [], []
     for cls, idx in class_to_index.items():
-        for p in (root / cls).iterdir():
+        for p in sorted((root / cls).iterdir()):
             if p.suffix.lower() in {".jpg", ".jpeg", ".png"}:
                 paths.append(str(p))
                 labels.append(idx)
+    return paths, labels
 
+
+def split_train_val(paths, labels, val_fraction=VAL_FRACTION):
+    """Deterministic, leak-free split done ONCE at the file-list level.
+
+    Splitting here — rather than with take()/skip() on a reshuffling
+    tf.data source — guarantees the val set is fixed across epochs and never
+    overlaps the training set.
+    """
+    order = list(range(len(paths)))
+    random.Random(SEED).shuffle(order)
+    n_val = max(1, int(val_fraction * len(order)))
+    val_ids = set(order[:n_val])
+
+    train, val = ([], []), ([], [])
+    for i in order:
+        bucket = val if i in val_ids else train
+        bucket[0].append(paths[i])
+        bucket[1].append(labels[i])
+    return train, val
+
+
+def build_pipeline(paths, labels, *, training: bool):
+    """Turn (paths, labels) into a batched, prefetched tf.data pipeline."""
     ds = tf.data.Dataset.from_tensor_slices((paths, labels))
+    # Shuffle is BEFORE the decode map, so it buffers cheap (path, label)
+    # tuples — not decoded images. Only the training split shuffles.
     if training:
         ds = ds.shuffle(len(paths), seed=SEED, reshuffle_each_iteration=True)
 
     def load(path, label):
         img = tf.io.read_file(path)
-        img = tf.io.decode_jpeg(img, channels=3)   # Fruits-360 images are JPEG
-        img = tf.image.resize(img, IMG_SIZE)
-        return tf.cast(img, tf.float32), label      # 0..255; the model rescales
+        # decode_image (not decode_jpeg) handles jpg/png; expand_animations=False
+        # keeps it a 3-D tensor so resize/batch work.
+        img = tf.io.decode_image(img, channels=3, expand_animations=False)
+        img = tf.image.resize(img, IMG_SIZE)            # -> float32, 0..255
+        img.set_shape([IMG_SIZE[0], IMG_SIZE[1], 3])    # pin shape for batching
+        return img, label                                # model rescales internally
 
-    ds = ds.map(load, num_parallel_calls=AUTOTUNE).batch(BATCH_SIZE).prefetch(AUTOTUNE)
-    return ds, len(paths)
+    return ds.map(load, num_parallel_calls=AUTOTUNE).batch(BATCH_SIZE).prefetch(AUTOTUNE)
 
 
 def main():
@@ -87,14 +118,14 @@ def main():
     class_to_index = {name: i for i, name in enumerate(class_names)}
     print(f"{len(class_names)} classes found")
 
-    full_train, n_train = make_dataset(TRAIN_DIR, class_to_index, training=True)
-    test_ds, _ = make_dataset(TEST_DIR, class_to_index, training=False)
+    paths, labels = list_examples(TRAIN_DIR, class_to_index)
+    (train_paths, train_labels), (val_paths, val_labels) = split_train_val(paths, labels)
+    print(f"{len(train_paths)} train / {len(val_paths)} val images")
 
-    # 90/10 train/val split on the batched dataset.
-    n_batches = n_train // BATCH_SIZE
-    val_batches = max(1, int(0.10 * n_batches))
-    val_ds = full_train.take(val_batches)
-    train_ds = full_train.skip(val_batches)
+    train_ds = build_pipeline(train_paths, train_labels, training=True)
+    val_ds = build_pipeline(val_paths, val_labels, training=False)
+    test_paths, test_labels = list_examples(TEST_DIR, class_to_index)
+    test_ds = build_pipeline(test_paths, test_labels, training=False)
 
     model = build_cnn(len(class_names), IMG_SIZE)
     model.summary()

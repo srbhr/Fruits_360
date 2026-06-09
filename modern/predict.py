@@ -45,8 +45,8 @@ def gather_paths(target: pathlib.Path) -> list[pathlib.Path]:
 
 
 def main():
-    if not MODEL_PATH.exists():
-        sys.exit(f"No trained model at {MODEL_PATH}. Run `python modern/train.py` first.")
+    if not MODEL_PATH.exists() or not LABELS_PATH.exists():
+        sys.exit(f"No trained model/labels in {HERE}. Run `python modern/train.py` first.")
 
     target = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "fruits" / "test_images"
     paths = gather_paths(target)
