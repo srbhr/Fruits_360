@@ -17,13 +17,15 @@ input pipeline** and an **explicit `tf.GradientTape` training loop** — no
 | `model.py`   | the model block in `fruits.py` | defines the CNN (functional, Keras 3) |
 | `train.py`   | `fruits.py`                    | raw `tf.data` pipeline + `GradientTape` loop |
 | `predict.py` | `Fruits_Detection.ipynb`       | batch inference on a folder or single image |
-| `requirements.txt` | the malware-laden root `requirements.txt` | 4 real deps |
+
+The dependency list lives at the repo root (`../requirements.txt`) — 4 real
+packages replacing the old 100+ `pip freeze` dump.
 
 ## Setup (macOS, Apple Silicon)
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r modern/requirements.txt
+pip install -r requirements.txt
 ```
 
 The arm64 `tensorflow` wheel runs on the **CPU** out of the box — which is plenty

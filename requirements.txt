@@ -1,103 +1,16 @@
-absl-py==0.8.1
-astor==0.8.0
-attrs==19.2.0
-backcall==0.1.0
-bleach==3.3.0
-blis==0.4.1
-certifi==2022.12.7
-chardet==3.0.4
-colorama==0.4.1
-cycler==0.10.0
-cymem==2.0.2
-Cython==0.29.13
-darkflow==1.0.0
-decorator==4.4.0
-defusedxml==0.6.0
-entrypoints==0.3
-et-xmlfile==1.0.1
-gast==0.2.2
-google-pasta==0.1.7
-grpcio==1.53.2
-h5py==2.10.0
-idna==3.7
-importlib-metadata==0.23
-ipykernel==5.1.2
-ipython==8.10.0
-ipython-genutils==0.2.0
-ipywidgets==7.5.1
-jdcal==1.4.1
-jedi==0.15.1
-Jinja2==3.1.4
-joblib==1.2.0
-json5==0.8.5
-jsonschema==3.1.1
-jupyter==1.0.0
-jupyter-client==5.3.4
-jupyter-console==6.0.0
-jupyter-core==4.11.2
-jupyterlab==3.6.7
-jupyterlab-server==1.0.6
-Keras==2.13.1
-Keras-Applications==1.0.8
-Keras-Preprocessing==1.1.0
-kiwisolver==1.1.0
-Markdown==3.1.1
-MarkupSafe==1.1.1
-matplotlib==3.1.1
-mistune==2.0.3
-more-itertools==7.2.0
-murmurhash==1.0.2
-nbconvert==6.5.1
-nbformat==4.4.0
-nltk==3.6.6
-notebook==6.4.12
-numpy==1.22.0
-opencv-python==4.2.0.32
-openpyxl==3.0.0
-opt-einsum==3.1.0
-pandas==0.25.1
-pandocfilters==1.4.2
-parso==0.5.1
-pickleshare==0.7.5
-Pillow==10.3.0
-plac==0.9.6
-preshed==3.0.2
-prometheus-client==0.7.1
-prompt-toolkit==2.0.10
-protobuf==3.18.3
-Pygments==2.15.0
-pyparsing==2.4.2
-pyrsistent==0.15.4
-python-dateutil==2.8.0
-pytz==2019.3
-pywin32==301
-pywinpty==0.5.5
-PyYAML==5.4
-pyzmq==18.1.0
-qtconsole==4.5.5
-requests==2.32.2
-scikit-learn==1.5.0
-scipy==1.10.0
-seaborn==0.9.0
-Send2Trash==1.5.0
-six==1.12.0
-sklearn==0.0
-srsly==0.1.0
-tensorboard==2.0.0
-tensorflow-estimator==2.0.0
-tensorflow-gpu==2.12.0
-termcolor==1.1.0
-terminado==0.8.2
-testpath==0.4.2
-thinc==7.1.1
-tornado==6.3.3
-tqdm==4.66.3
-traitlets==4.3.3
-urllib3==1.26.18
-wasabi==0.2.2
-wcwidth==0.1.7
-webencodings==0.5.1
-Werkzeug==2.2.3
-widgetsnbextension==3.5.1
-wrapt==1.11.2
-zipp==3.19.1
+# The entire real dependency surface of this project — four packages.
+#
+# This replaces the old `pip freeze` dump (100+ packages) that used to live
+# here, which included the `sklearn==0.0` placeholder trap, an unused
+# `darkflow`, the full spaCy stack, and Windows-only pywin32 — none of which
+# this project's code ever imported.
+
+tensorflow>=2.16,<2.20   # ships Keras 3 + tf.data; the macOS arm64 wheel is just `tensorflow`
+numpy>=1.26
+pillow>=10.3             # TF uses it under the hood for some image ops
+matplotlib>=3.8          # only needed if you want to plot predictions
+
+# --- Optional: Apple-Silicon GPU acceleration (Metal) ---
+# The CPU already trains this tiny model in minutes, so this is optional.
+# Metal lags TF releases and some op combos have bugs — pin a matching pair.
+# tensorflow-metal>=1.1
