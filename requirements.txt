@@ -1,16 +1,17 @@
-# The entire real dependency surface of this project — four packages.
+# This project imports exactly ONE third-party package: tensorflow.
 #
-# This replaces the old `pip freeze` dump (100+ packages) that used to live
-# here, which included the `sklearn==0.0` placeholder trap, an unused
-# `darkflow`, the full spaCy stack, and Windows-only pywin32 — none of which
-# this project's code ever imported.
+# Everything else it uses (json, pathlib, random, sys) is the Python standard
+# library. numpy rides along as a TensorFlow dependency — we never import it
+# directly. pillow and matplotlib are NOT used by this code at all, so they're
+# deliberately absent (the old 2019 notebook plotted with them; the new
+# predict.py just prints).
 
-tensorflow>=2.16,<2.20   # ships Keras 3 + tf.data; the macOS arm64 wheel is just `tensorflow`
-numpy>=1.26
-pillow>=10.3             # TF uses it under the hood for some image ops
-matplotlib>=3.8          # only needed if you want to plot predictions
+tensorflow>=2.16,<2.20   # the macOS arm64 wheel is just `tensorflow`; pulls numpy + its own deps
 
 # --- Optional: Apple-Silicon GPU acceleration (Metal) ---
 # The CPU already trains this tiny model in minutes, so this is optional.
 # Metal lags TF releases and some op combos have bugs — pin a matching pair.
 # tensorflow-metal>=1.1
+
+# --- Optional: if you want the old grid-of-images prediction plot ---
+# matplotlib>=3.8

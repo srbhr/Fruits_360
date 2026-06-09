@@ -57,11 +57,12 @@ def main():
     model = keras.models.load_model(str(MODEL_PATH))
 
     batch = tf.stack([load_image(p) for p in paths])
-    probs = tf.nn.softmax(model(batch, training=False), axis=-1).numpy()
+    probs = tf.nn.softmax(model(batch, training=False), axis=-1)
+    top_idx = tf.argmax(probs, axis=-1)        # tf op, not numpy
+    top_conf = tf.reduce_max(probs, axis=-1)
 
-    for i, path in enumerate(paths):
-        idx = int(probs[i].argmax())
-        print(f"{path.name:30s} -> {class_names[idx]:25s} ({probs[i][idx]:.1%})")
+    for path, idx, conf in zip(paths, top_idx.numpy(), top_conf.numpy()):
+        print(f"{path.name:30s} -> {class_names[int(idx)]:25s} ({float(conf):.1%})")
 
 
 if __name__ == "__main__":

@@ -18,8 +18,9 @@ input pipeline** and an **explicit `tf.GradientTape` training loop** — no
 | `train.py`   | `fruits.py`                    | raw `tf.data` pipeline + `GradientTape` loop |
 | `predict.py` | `Fruits_Detection.ipynb`       | batch inference on a folder or single image |
 
-The dependency list lives at the repo root (`../requirements.txt`) — 4 real
-packages replacing the old 100+ `pip freeze` dump.
+The dependency list lives at the repo root (`../requirements.txt`) — exactly
+**one** real package (TensorFlow) replacing the old 100+ `pip freeze` dump.
+numpy comes along as a TF dependency; nothing here imports it directly.
 
 ## Setup (macOS, Apple Silicon)
 
@@ -69,4 +70,4 @@ an hour.
 - softmax in the model → logits + `from_logits=True` loss (numerically stable)
 - hand-typed 70-label dict → `class_names.json` saved at train time
 - `.h5` → native `.keras` format
-- `requirements.txt` (100+ pkgs, `sklearn==0.0`, `darkflow`) → 4 real deps
+- `requirements.txt` (100+ pkgs, `sklearn==0.0`, `darkflow`) → 1 real dep (TensorFlow)
