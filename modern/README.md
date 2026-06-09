@@ -57,7 +57,7 @@ python modern/predict.py some_fruit.jpg
 
 ## Will it train on an M2 Pro / 16 GB?
 
-Yes, comfortably. The model is ~200K params and `tf.data` streams images from
+Yes, comfortably. The model is ~149K params and `tf.data` streams images from
 disk batch-by-batch, so the dataset never sits in RAM (peak usage is a few
 hundred MB). On the CPU expect a few minutes per epoch; 15 epochs is well under
 an hour.
