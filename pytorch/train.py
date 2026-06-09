@@ -12,14 +12,15 @@ Mirrors ../modern/train.py:
   * Saves a state_dict (.pt) + class_names.json so inference needs no hand-typed
     label map.
 
-Data: download Fruits-360 and unzip at the repo root:
-    fruits/Training/<ClassName>/*.jpg
-    fruits/Test/<ClassName>/*.jpg
-from https://www.kaggle.com/datasets/moltean/fruits
+Data: clone Fruits-360 (100x100) under the repo root, e.g.
+    git clone https://github.com/fruits-360/fruits-360-100x100
+This script auto-detects a folder containing Training/ and Test/ (so either
+fruits/ or fruits-360-100x100/ works), or set FRUITS_DIR=/path/to/dataset.
 
 Run from the repo root:  python pytorch/train.py
 """
 import json
+import os
 import pathlib
 import sys
 
@@ -32,8 +33,6 @@ from model import FruitsCNN
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-TRAIN_DIR = ROOT / "fruits" / "Training"
-TEST_DIR = ROOT / "fruits" / "Test"
 MODEL_OUT = HERE / "fruits_360.pt"
 LABELS_OUT = HERE / "class_names.json"
 
@@ -52,13 +51,40 @@ def pick_device() -> torch.device:
     return torch.device("cpu")
 
 
+def find_data_dir() -> pathlib.Path:
+    """Locate a folder containing both Training/ and Test/.
+
+    Checks, in order: $FRUITS_DIR, an optional path passed as argv[1], then the
+    usual clone locations under the repo root — so it doesn't matter whether you
+    cloned into fruits/ or fruits-360-100x100/.
+    """
+    candidates = []
+    if os.environ.get("FRUITS_DIR"):
+        candidates.append(pathlib.Path(os.environ["FRUITS_DIR"]))
+    if len(sys.argv) > 1:
+        candidates.append(pathlib.Path(sys.argv[1]))
+    candidates += [ROOT / "fruits", ROOT / "fruits-360-100x100", ROOT / "fruits-360"]
+
+    for c in candidates:
+        if (c / "Training").is_dir() and (c / "Test").is_dir():
+            return c
+    # Last resort: any direct child of the repo that looks like the dataset.
+    for c in sorted(p for p in ROOT.iterdir() if p.is_dir()):
+        if (c / "Training").is_dir() and (c / "Test").is_dir():
+            return c
+
+    sys.exit(
+        "Dataset not found — need a folder containing Training/ and Test/.\n"
+        "Clone it under the repo, e.g.:\n"
+        "  git clone https://github.com/fruits-360/fruits-360-100x100\n"
+        "then re-run, or:  FRUITS_DIR=/path/to/dataset python pytorch/train.py"
+    )
+
+
 def main():
-    if not TRAIN_DIR.exists():
-        sys.exit(
-            f"Training data not found at '{TRAIN_DIR}'.\n"
-            "Download Fruits-360 from https://www.kaggle.com/datasets/moltean/fruits\n"
-            "and unzip it so you have fruits/Training/<Class>/*.jpg"
-        )
+    data_dir = find_data_dir()
+    train_dir, test_dir = data_dir / "Training", data_dir / "Test"
+    print(f"data: {train_dir}")
 
     device = pick_device()
     print(f"device: {device}")
@@ -79,8 +105,8 @@ def main():
     ])
 
     # Two views of the same folder so train can augment while val/test cannot.
-    train_full = datasets.ImageFolder(TRAIN_DIR, transform=train_tf)
-    val_full = datasets.ImageFolder(TRAIN_DIR, transform=eval_tf)
+    train_full = datasets.ImageFolder(train_dir, transform=train_tf)
+    val_full = datasets.ImageFolder(train_dir, transform=eval_tf)
     class_names = train_full.classes
     print(f"{len(class_names)} classes")
 
@@ -91,9 +117,7 @@ def main():
     val_idx, train_idx = order[:n_val], order[n_val:]
     train_ds = Subset(train_full, train_idx)
     val_ds = Subset(val_full, val_idx)
-    if not TEST_DIR.exists():
-        sys.exit(f"Test data not found at '{TEST_DIR}'.")
-    test_ds = datasets.ImageFolder(TEST_DIR, transform=eval_tf)
+    test_ds = datasets.ImageFolder(test_dir, transform=eval_tf)
     # ImageFolder builds its OWN class->index map from the Test folder. If that
     # disagrees with the training order, test labels would silently misalign and
     # test accuracy would be meaningless. Fail loudly instead of reporting noise.
