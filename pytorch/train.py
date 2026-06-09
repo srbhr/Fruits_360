@@ -91,7 +91,17 @@ def main():
     val_idx, train_idx = order[:n_val], order[n_val:]
     train_ds = Subset(train_full, train_idx)
     val_ds = Subset(val_full, val_idx)
+    if not TEST_DIR.exists():
+        sys.exit(f"Test data not found at '{TEST_DIR}'.")
     test_ds = datasets.ImageFolder(TEST_DIR, transform=eval_tf)
+    # ImageFolder builds its OWN class->index map from the Test folder. If that
+    # disagrees with the training order, test labels would silently misalign and
+    # test accuracy would be meaningless. Fail loudly instead of reporting noise.
+    if test_ds.classes != class_names:
+        sys.exit(
+            "Test classes don't match training classes — labels would misalign.\n"
+            f"  train: {len(class_names)} classes; test: {len(test_ds.classes)} classes"
+        )
     print(f"{len(train_ds)} train / {len(val_ds)} val / {len(test_ds)} test images")
 
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
@@ -120,7 +130,9 @@ def main():
                 total += labels.size(0)
         return total_loss / total, correct / total
 
-    best_val = 0.0
+    # Start below 0 so epoch 1 always writes a checkpoint — guarantees MODEL_OUT
+    # exists for the final test-set load, even on a degenerate (val_acc==0) run.
+    best_val = -1.0
     for epoch in range(1, EPOCHS + 1):
         train_loss, train_acc = run_epoch(train_loader, train=True)
         val_loss, val_acc = run_epoch(val_loader, train=False)
