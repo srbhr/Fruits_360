@@ -105,3 +105,14 @@ venv.bak/
 
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints
+
+# --- modern/ + pytorch/ additions ---
+# Cloned/downloaded datasets (large, not tracked)
+/fruits-360-100x100/
+/fruits/Training/
+/fruits/Test/
+
+# Trained model artifacts + generated labels
+*.pt
+*.keras
+**/class_names.json

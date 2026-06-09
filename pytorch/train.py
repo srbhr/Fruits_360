@@ -38,9 +38,13 @@ LABELS_OUT = HERE / "class_names.json"
 
 IMG_SIZE = (100, 100)
 BATCH_SIZE = 32
-EPOCHS = 15
+EPOCHS = int(os.environ.get("EPOCHS", "15"))
 SEED = 42
 VAL_FRACTION = 0.10
+NUM_WORKERS = int(os.environ.get("NUM_WORKERS", "2"))
+# Optional cap on batches per epoch — for a quick real-data smoke run, e.g.
+#   EPOCHS=1 LIMIT_BATCHES=40 NUM_WORKERS=0 python pytorch/train.py
+LIMIT_BATCHES = int(os.environ["LIMIT_BATCHES"]) if os.environ.get("LIMIT_BATCHES") else None
 
 
 def pick_device() -> torch.device:
@@ -118,19 +122,25 @@ def main():
     train_ds = Subset(train_full, train_idx)
     val_ds = Subset(val_full, val_idx)
     test_ds = datasets.ImageFolder(test_dir, transform=eval_tf)
-    # ImageFolder builds its OWN class->index map from the Test folder. If that
-    # disagrees with the training order, test labels would silently misalign and
-    # test accuracy would be meaningless. Fail loudly instead of reporting noise.
-    if test_ds.classes != class_names:
-        sys.exit(
-            "Test classes don't match training classes — labels would misalign.\n"
-            f"  train: {len(class_names)} classes; test: {len(test_ds.classes)} classes"
-        )
+    # ImageFolder indexes the Test folder independently, so its label ids won't
+    # match training's. Remap test targets onto the TRAINING indices, matching by
+    # name case-insensitively (the dataset ships "BlackBerry 4" in Training but
+    # "Blackberry 4" in Test). Fail loudly only if a test class is truly absent
+    # from training — that would make its accuracy meaningless.
+    train_idx_by_name = {name.lower(): i for i, name in enumerate(class_names)}
+    missing = sorted({c for c in test_ds.classes if c.lower() not in train_idx_by_name})
+    if missing:
+        sys.exit(f"Test has {len(missing)} class(es) not in Training, e.g. {missing[:5]}")
+    remap = {test_ds.class_to_idx[c]: train_idx_by_name[c.lower()] for c in test_ds.classes}
+    test_ds.samples = [(path, remap[t]) for path, t in test_ds.samples]
+    test_ds.targets = [t for _, t in test_ds.samples]
     print(f"{len(train_ds)} train / {len(val_ds)} val / {len(test_ds)} test images")
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
-    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    if LIMIT_BATCHES:
+        print(f"(quick run: capped at {LIMIT_BATCHES} batches/epoch, {NUM_WORKERS} workers)")
 
     model = FruitsCNN(len(class_names)).to(device)
     optimizer = torch.optim.Adam(model.parameters())
@@ -140,7 +150,9 @@ def main():
         model.train(train)
         total_loss, correct, total = 0.0, 0, 0
         with torch.set_grad_enabled(train):
-            for images, labels in loader:
+            for i, (images, labels) in enumerate(loader):
+                if LIMIT_BATCHES is not None and i >= LIMIT_BATCHES:
+                    break
                 images, labels = images.to(device), labels.to(device)
                 if train:
                     optimizer.zero_grad()
