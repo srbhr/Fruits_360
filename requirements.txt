@@ -1,12 +1,15 @@
-# This project imports exactly ONE third-party package: tensorflow.
+# This project's only EXPLICIT third-party dependency is TensorFlow.
 #
-# Everything else it uses (json, pathlib, random, sys) is the Python standard
-# library. numpy rides along as a TensorFlow dependency — we never import it
-# directly. pillow and matplotlib are NOT used by this code at all, so they're
-# deliberately absent (the old 2019 notebook plotted with them; the new
-# predict.py just prints).
+# Keras 3 and numpy arrive WITH it as TensorFlow's own dependencies — since
+# TF 2.16, `tensorflow` depends on the separate `keras` package, and Keras IS
+# TensorFlow's built-in high-level API (every layer / optimizer / loss / metric
+# in this code is Keras). We never import keras or numpy as standalone packages,
+# so they aren't listed here. pillow and matplotlib are NOT used by this code at
+# all (the 2019 notebook plotted with them; the new predict.py just prints).
+#
+# Everything else the code uses (json, pathlib, random, sys) is the stdlib.
 
-tensorflow>=2.16,<2.20   # the macOS arm64 wheel is just `tensorflow`; pulls numpy + its own deps
+tensorflow>=2.21.0,<2.22   # TF 2.21.x — latest stable (released 2026-03-04); macOS arm64 wheel is just `tensorflow`
 
 # --- Optional: Apple-Silicon GPU acceleration (Metal) ---
 # The CPU already trains this tiny model in minutes, so this is optional.

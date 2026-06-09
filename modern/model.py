@@ -1,4 +1,4 @@
-"""Modern Fruits-360 CNN — Keras 3 functional model (TF 2.16+).
+"""Modern Fruits-360 CNN — Keras 3 functional model (TF 2.21).
 
 What changed vs the 2019 `fruits.py`:
 

@@ -1,7 +1,7 @@
 # Fruits-360 — modernized pipeline (2026)
 
 A from-scratch rewrite of the 2019 relic in `../fruits.py` + `../Fruits_Detection.ipynb`,
-using current TensorFlow (2.16+, which ships Keras 3) with a **raw `tf.data`
+using TensorFlow 2.21 (which ships Keras 3) with a **raw `tf.data`
 input pipeline** and an **explicit `tf.GradientTape` training loop** — no
 `ImageDataGenerator`, no `model.fit_generator`, no `.h5`.
 
@@ -19,10 +19,13 @@ input pipeline** and an **explicit `tf.GradientTape` training loop** — no
 | `predict.py` | `Fruits_Detection.ipynb`       | batch inference on a folder or single image |
 
 The dependency list lives at the repo root (`../requirements.txt`) — exactly
-**one** real package (TensorFlow) replacing the old 100+ `pip freeze` dump.
-numpy comes along as a TF dependency; nothing here imports it directly.
+**one** explicit package (TensorFlow). Keras 3 and numpy come along as TF's own
+dependencies: Keras is its built-in high-level API (every layer / optimizer /
+loss here is Keras), and nothing imports either as a standalone package.
 
 ## Setup (macOS, Apple Silicon)
+
+Requires **Python ≥ 3.10** (TF 2.21 dropped Python 3.9 support).
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -70,4 +73,19 @@ an hour.
 - softmax in the model → logits + `from_logits=True` loss (numerically stable)
 - hand-typed 70-label dict → `class_names.json` saved at train time
 - `.h5` → native `.keras` format
-- `requirements.txt` (100+ pkgs, `sklearn==0.0`, `darkflow`) → 1 real dep (TensorFlow)
+- `requirements.txt` (100+ pkgs, `sklearn==0.0`, `darkflow`) → 1 explicit dep (TensorFlow 2.21; Keras 3 + numpy ride along)
+
+## Targeting TensorFlow 2.21 (released 2026-03-04)
+
+Verified against the 2.21.0 release notes — the changes that actually touch this project:
+
+- **Python ≥ 3.10 required** — TF 2.21 removed Python 3.9 support.
+- **Leaner install** — TF 2.21 dropped its bundled TensorBoard dependency, so a
+  plain `pip install tensorflow` now pulls fewer packages than on older TF.
+- **`tf.io.decode_image` gained JPEG XL support** — `train.py` and `predict.py`
+  already use `decode_image` (not `decode_jpeg`), so they pick this up for free.
+
+2.21 is mostly cleanup (dropped Python 3.9 / TensorBoard) plus `tf.lite`
+quantization and minor `tf.data` / `tf.image` additions. There is **no new
+training API that changes how this pipeline is written** — the model and
+training loop are unchanged from what already runs on TF 2.16+.
