@@ -1,0 +1,16 @@
+# The ENTIRE real dependency surface of this project — four packages.
+#
+# Your old root requirements.txt was a `pip freeze` of a whole 2019 Anaconda
+# environment (100+ packages, including the `sklearn==0.0` placeholder trap,
+# an unused `darkflow`, the spaCy stack, and Windows-only pywin32). None of it
+# was ever imported by this code. When you're ready: `git rm requirements.txt`.
+
+tensorflow>=2.16,<2.20   # ships Keras 3 + tf.data; the macOS arm64 wheel is just `tensorflow`
+numpy>=1.26
+pillow>=10.3             # TF uses it under the hood for some image ops
+matplotlib>=3.8          # only needed if you want to plot predictions
+
+# --- Optional: Apple-Silicon GPU acceleration (Metal) ---
+# The CPU already trains this tiny model in minutes, so this is optional.
+# Metal lags TF releases and some op combos have bugs — pin a matching pair.
+# tensorflow-metal>=1.1
