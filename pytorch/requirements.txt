@@ -1,0 +1,11 @@
+# Two explicit dependencies: PyTorch + its vision companion.
+#
+# On macOS arm64, `pip install torch torchvision` installs MPS-enabled wheels
+# (Apple-Silicon GPU) by default — no CUDA, no extra index URL needed. Install
+# them together so pip resolves a compatible torch/torchvision pair.
+
+torch>=2.2
+torchvision>=0.17
+
+# torchvision pulls in Pillow + numpy as ITS OWN dependencies; this code never
+# imports them directly (image loading goes through torchvision.io / transforms).
